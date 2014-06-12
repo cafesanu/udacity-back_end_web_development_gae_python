@@ -2,6 +2,12 @@
 __pycache__/
 *.py[cod]
 
+#yaml files
+*.yaml
+
+#temp files
+*.*~
+
 # C extensions
 *.so
 
