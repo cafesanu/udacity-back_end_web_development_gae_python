@@ -1,0 +1,9 @@
+{% extends "blogbase.html" %}
+
+{% block content %}
+
+	{% for post in all_posts%}
+		{{post.render() | safe }}
+	{% endfor %}
+
+{% endblock %}
