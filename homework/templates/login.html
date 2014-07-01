@@ -1,0 +1,35 @@
+{% extends "blogbase.html" %}
+
+{% block content %}
+	<form method="post">
+        <h2>Signup</h2>
+        <br>
+        <table>
+            <tr>
+                <td class="label">
+                    Username
+                </td>
+                <td>
+                    <input type="text" name="username" value="{{username}}">
+                </td>
+                <td class="error">
+                    {{error_username}}
+                </td>
+            </tr>
+
+            <tr>
+                <td class="label">
+                    Password
+                </td>
+                <td>
+                    <input type="password" name="password" value="{{password}}">
+                </td>
+                <td class="error">
+                    {{error_password}}
+                </td>
+            </tr>
+        </table>
+        <br>
+        <input type="submit">
+    </form>
+{% endblock %}
