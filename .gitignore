@@ -6,7 +6,7 @@ __pycache__/
 *.yaml
 
 #secret files
-./homework/mathfuncs.py
+./final_project/secret.py
 
 #temp files
 *.*~
