@@ -3,5 +3,5 @@
 {% block content %}
 
 	{{post.render() | safe }}
-
+	<p class="pright"> queried {{time_post_cached}} second ago</p>
 {% endblock %}

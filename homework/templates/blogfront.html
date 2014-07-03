@@ -5,5 +5,5 @@
 	{% for post in all_posts%}
 		{{post.render() | safe }}
 	{% endfor %}
-
+	<p class="pright"> queried {{time_blog_cached}} second ago</p>
 {% endblock %}

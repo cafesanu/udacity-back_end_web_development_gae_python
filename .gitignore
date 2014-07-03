@@ -5,6 +5,9 @@ __pycache__/
 #yaml files
 *.yaml
 
+#secret files
+./homework/mathfuncs.py
+
 #temp files
 *.*~
 

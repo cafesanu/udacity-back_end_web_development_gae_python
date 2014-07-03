@@ -3,7 +3,7 @@ body {
     font-family: Helvetica, Arial, sans-serif;
     font-size: 14px;
 
-    width: 800px;
+    width: 1200px;
     margin: 0 auto;
     padding: 10px;
     color: #333;
@@ -29,6 +29,9 @@ body {
 .login-link:hover {
     text-decoration: underline;
 }
+h1 {
+    text-align:center
+}
 
 h2 {
     font-size: 24px;
@@ -49,43 +52,21 @@ label + label {
     margin-top: 20px;
 }
 
-input[type=text] {
-    width: 500px;
-    font-size: 20px;
-    padding: 2px;
-    font-family: monospace;
-}
-
-
-input[type=password] {
-    width: 500px;
-    font-size: 20px;
+input[type=text], input[type=password] {
+    width: 130px;
     padding: 2px;
     font-family: monospace;
 }
 
 textarea {
-  width: 500px;
+  margin-top: 5px;
+  font-weight: bold;
+  width: 800px;
   height: 400px;
-  font-size: 17px;
+  font-size: 13px;
   font-family: monospace;
 }
 
-input[type=submit] {
-  font-size: 24px;
-}
-
-.right {
-    position: absolute;
-    right: 0px;
-    width: 200px;
-}
-
-.pright {
-    position: absolute;
-    right: 0px;
-    width: 250px;
-}
 
 .main-title {
     display: block;
@@ -94,7 +75,6 @@ input[type=submit] {
     font-weight: bold;
     text-align: center;
     margin-bottom: 30px;
-    margin-top: 30px;
     text-decoration: none;
 }
 
@@ -110,13 +90,6 @@ input[type=submit] {
 .post-title {
     font-size: 24px;
     font-weight: bold;
-
-    text-decoration: none;
-    color: #333;
-}
-
-.post-title:visisted {
-    color: #333;
 }
 
 .post-date {
@@ -131,10 +104,14 @@ input[type=submit] {
     margin-top: 5px;
 }
 
-.age {
-    position: absolute;
-    bottom: 0px;
-    right: 0px;
-    color: gray;
-    font-size: 12px;
+#content {
+  margin-left:  20%;
+  padding-left: 50px;
 }
+
+#navbar {
+  border-right: 1px solid #AAAAAA;
+  float: left;
+  width: 20%;
+}
+

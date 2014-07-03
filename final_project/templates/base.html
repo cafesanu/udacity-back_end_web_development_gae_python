@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<link   type="text/css"        rel="stylesheet" href="/static/main.css" />
+		<title>CAFESANU: Udacity CS-253 Final Project: Build a Wiki</title>
+	</head>
+
+	<body>
+
+		<div class="login-area">
+			{% if username_session %}
+
+			    <a class="login-link" href="{{link_edit_view}}{{page}}">{{edit_view}}</a>
+				{{username_session}}
+				<a class="login-link" href="/logout">(logout)</a>
+			{% else %}
+				<a class="login-link" href="/login">login</a>
+				|
+				<a class="login-link" href="/signup">signup</a>
+			{% endif %}
+
+		</div>
+
+	<h1>CAFESANU CS-253 Wiki </h1>
+		<div id="navbar">
+			<h4>Create/Edit Wiki:</h4>
+			<form method="post">
+				<input type="text" name="wikipage" placeholder="Wiki name">
+				<input type="submit" value="Go">
+    		</form>
+
+			<h4>Wikis Created:</h4>
+		</div>
+		<div id="content">
+			{% block content %}
+			{% endblock %}
+		</div>
+	</body>
+
+</html>
