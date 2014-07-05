@@ -4,7 +4,6 @@ import cgi
 
 import jinja2
 import os
-import mathfuncs
 
 import random
 import string

@@ -27,3 +27,7 @@ class BaseHandler(webapp2.RequestHandler):
 
     def render(self, template, **kw):
         self.write(self.render_str(template, **kw))
+
+    def set_escaping(self, escape):
+        global jinja_env
+        jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape = escape)
