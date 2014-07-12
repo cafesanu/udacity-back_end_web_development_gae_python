@@ -97,7 +97,7 @@ class HandlerMain(HandlerBase):
             new_wiki = Wiki(parent=Wiki.wiki_key(), page = '/', content = content)
             new_wiki.put()
             time.sleep(.5) #make sure put goes before geeting list of wikis
-            
+
         last_10_wikis = get_last_10_wikis()
         id = self.request.get( 'id' )
         username_session = session.get_username(self)
@@ -286,11 +286,8 @@ class HandlerHistory(HandlerBase):
         query = "SELECT * FROM Wiki WHERE page = '%s' ORDER BY created DESC" %(page)
         wikis = db.GqlQuery(query)
         self.set_escaping(True)
-        if session.is_user_logged_in(self):
-            username_session = session.get_username(self)
-            self.render('history.html', last_10_wikis=last_10_wikis, username_session=username_session, wikis=wikis, page=page)
-        else:
-            self.render('history.html', last_10_wikis=last_10_wikis, wikis=wikis, page=page)
+        username_session = session.get_username(self)
+        self.render('history.html', last_10_wikis=last_10_wikis, username_session=username_session, wikis=wikis, page=page)
         self.set_escaping(False)
 
 class HandlerEdit(HandlerBase):
@@ -373,7 +370,7 @@ class HandlerPage(HandlerBase):
                 username_session = session.get_username(self)
                 self.render('page.html',last_10_wikis=last_10_wikis, page=page, username_session=username_session, link_edit_view="/_edit" ,edit_view="edit", content=content)
             else:
-                self.render('page.html',last_10_wikis=last_10_wikis, content=content)
+                self.render('page.html',last_10_wikis=last_10_wikis, page=page, content=content)
         else:
             url = "/_edit%s"%(page)
             self.redirect(url)
