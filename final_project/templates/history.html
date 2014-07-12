@@ -1,35 +1,35 @@
 {% extends "base.html" %}
 {% block content %}
-	<div class="HistoryTable" >
-		<table>				
-	            <tr>
-	                <td>
-	                	Date
-	                </td>
-	                <td>
-	                    Content
-	                </td>
-	                <td>
-	                </td>
-	                <td>
-	                </td>
-	            </tr>
-			{% for wiki in wikis %}
-	            <tr>
-	                <td>
-	                	{{wiki.created.strftime("%a %b %d %H:%M:%S %Y")}}
-	                </td>
-	                <td>
-	                    {{wiki.content}}
-	                </td>
-	                <td>
-	                	<a class="login-link" href="{{page}}?id={{wiki.key().id()}}">view</a>
-	                </td>
-	                <td>	                    
-	                	<a class="login-link" href="/_edit{{page}}?id={{wiki.key().id()}}">edit</a>
-	                </td>
-	            </tr>
-        	{% endfor %}
+    <div class="HistoryTable" >
+        <table>             
+                <tr>
+                    <td>
+                        Date
+                    </td>
+                    <td>
+                        Content
+                    </td>
+                    <td>
+                    </td>
+                    <td>
+                    </td>
+                </tr>
+            {% for wiki in wikis %}
+                <tr>
+                    <td>
+                        {{wiki.created.strftime("%a %b %d %H:%M:%S %Y")}}
+                    </td>
+                    <td>
+                        {{wiki.content}}
+                    </td>
+                    <td>
+                        <a class="login-link" href="{{page}}?id={{wiki.key().id()}}">view</a>
+                    </td>
+                    <td>                        
+                        <a class="login-link" href="/_edit{{page}}?id={{wiki.key().id()}}">edit</a>
+                    </td>
+                </tr>
+            {% endfor %}
         </table>
     </div>
 {% endblock %}

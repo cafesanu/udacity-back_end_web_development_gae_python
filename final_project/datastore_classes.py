@@ -9,3 +9,7 @@ class Wiki(db.Model):
     created       = db.DateTimeProperty(auto_now_add = True)
     page          = db.StringProperty(required = True)
     content       = db.TextProperty(required = False)
+
+    @staticmethod
+    def wiki_key(name = 'default'):
+        return db.Key.from_path('wikis', name)

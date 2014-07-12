@@ -9,6 +9,7 @@ import os
 import cgi
 import time
 import jinja2
+import re
 
 #------------------------------------------------------------------------------
 #Google App Engine imports
@@ -17,7 +18,6 @@ from google.appengine.ext import db
 
 #------------------------------------------------------------------------------
 #local imports
-from utils import BaseHandler, jinja_env
 from datastore_classes import User, Wiki
 import session
 
@@ -34,20 +34,53 @@ jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), a
 
 #------------------------------------------------------------------------------
 #Global Functions
-def wiki_key(name = 'default'):
-    return db.Key.from_path('wikis', name)
-
-def get_all_wikis():
-    query = "SELECT DISTINCT page FROM Wiki ORDER BY page ASC"
+def get_last_10_wikis():
+    query = "SELECT page FROM Wiki ORDER BY created DESC"
     wikis = db.GqlQuery(query)
-    return wikis
 
+    wiki_pages = []
+    for w in wikis:
+        if w.page not in wiki_pages:
+            wiki_pages.append(w.page)
+    return wiki_pages[:10]
 
 #------------------------------------------------------------------------------
 #Page Handlers
+#------------------------------------------------------------------------------
+
+class HandlerBase(webapp2.RequestHandler):
+    r"""
+        Base handler with common method that all other handler will inherit
+    """
+
+    def write(self, *a, **kw):
+        r"""
+            easier way to remember response.out.write
+        """
+        self.response.out.write(*a, **kw)
+
+    def render_str(self, template, **params):
+        r"""
+            render page with jinja
+        """
+        t = jinja_env.get_template(template)
+        return t.render(params)
+
+    def render(self, template, **kw):
+        r"""
+            easier way to remember self.write
+        """
+        self.write(self.render_str(template, **kw))
+    
+    def set_escaping(self, escape):
+        r"""
+            Enable/Disable escaping
+        """
+        global jinja_env
+        jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape = escape)
 
 
-class HandlerMain(BaseHandler):
+class HandlerMain(HandlerBase):
     r"""Handler for index page
 
     """
@@ -56,25 +89,44 @@ class HandlerMain(BaseHandler):
             depending if user is logged-in or not
 
         """
-
-        all_wikis = get_all_wikis()
+        #check if main page exists, if it doesn't create a welcome message.
+        query = "SELECT * FROM Wiki WHERE page = '/' ORDER BY created DESC LIMIT 1" 
+        wiki = db.GqlQuery(query)
+        if not wiki.count():#if main page does not exist
+            content = "Welcome to my new wiki"
+            new_wiki = Wiki(parent=Wiki.wiki_key(), page = '/', content = content)
+            new_wiki.put()
+            time.sleep(.5) #make sure put goes before geeting list of wikis
+            
+        last_10_wikis = get_last_10_wikis()
         id = self.request.get( 'id' )
         username_session = session.get_username(self)
         wiki = None
         if id:#if user is requesting an specific version
-            wiki = Wiki.get_by_id(int(id), parent=wiki_key())
+            wiki = Wiki.get_by_id(int(id), parent=Wiki.wiki_key())
         if wiki and wiki.page == "/": #Check version belong to this page
             content = wiki.content
-            self.render("page.html", all_wikis=all_wikis, page = "/",username_session=username_session, link_edit_view="/_edit/?id="+ id, edit_view="edit", content=content)
+            self.render("page.html", from_main = True, last_10_wikis=last_10_wikis, page = "/",username_session=username_session, link_edit_view="/_edit/?id="+ id, edit_view="edit", content=content)
         else:#Not a version, load last version
             query = "SELECT * FROM Wiki WHERE page = '/' ORDER BY created DESC LIMIT 1"
             wiki = db.GqlQuery(query)
             content = ""
             if wiki.count():#if wiki exist
                 content = wiki.get().content
-            self.render("page.html", all_wikis=all_wikis, page = "/",username_session=username_session, link_edit_view="/_edit", edit_view="edit", content=content)
+            self.render("page.html", from_main = True,  last_10_wikis=last_10_wikis, page = "/",username_session=username_session, link_edit_view="/_edit", edit_view="edit", content=content)
+    def post(self):
+        page = self.request.get( 'page' )
 
-class HandlerSignUp(BaseHandler):
+        if page[:1] != '/':
+            page = "/" + page
+        #replace spaces for underscore
+        page = re.sub(' +','_',page)
+        page = cgi.escape(page)
+        url = "/_edit%s"%(page)
+        self.redirect(url)
+
+
+class HandlerSignUp(HandlerBase):
     r"""Shows singup info for user who'd like to register
 
     """
@@ -99,18 +151,15 @@ class HandlerSignUp(BaseHandler):
 
         """
 
-        all_wikis = get_all_wikis()
-        if session.is_user_logged_in(self):
-            username_session = session.get_username(self)
-            self.render('signup.html', all_wikis=all_wikis, username_session=username_session)
-        else:
-            self.render('signup.html', all_wikis=all_wikis)
+        last_10_wikis = get_last_10_wikis()
+        username_session = session.get_username(self)
+        self.render('signup.html', last_10_wikis=last_10_wikis, username_session=username_session)
 
     def post(self):
         r""" Verifies user's type info, if valid, add user, set cookies and redirect to index page
         """
 
-        all_wikis = get_all_wikis()
+        last_10_wikis = get_last_10_wikis()
         username = self.request.get( 'username' )
         password = self.request.get('password')
         verify = self.request.get('verify')
@@ -138,7 +187,7 @@ class HandlerSignUp(BaseHandler):
             valid_username = False
             error_username = "Username already exists."
         if not(valid_username and valid_password and valid_verify and valid_email):
-            self.render('signup.html',  all_wikis=all_wikis,
+            self.render('signup.html',  last_10_wikis=last_10_wikis,
                                         username = username, 
                                         email = email,
                                         error_username = error_username,
@@ -148,7 +197,8 @@ class HandlerSignUp(BaseHandler):
         else:
             self.add_user(username, password, email)
 
-class HandlerLogin(BaseHandler):
+
+class HandlerLogin(HandlerBase):
     r"""
         Handler for users who'd like to login
     """
@@ -159,7 +209,7 @@ class HandlerLogin(BaseHandler):
             logs-in user checking db. If not found send unexpected error
         """
 
-        all_wikis = get_all_wikis()
+        last_10_wikis = get_last_10_wikis()
         q = db.GqlQuery( "SELECT * FROM User where username = \'" + username + "\'" )
         if q.count() == 1:
             user = q.get()
@@ -170,23 +220,23 @@ class HandlerLogin(BaseHandler):
             self.redirect("/")
         else:
             error_username = "Unexpected error. Plase try again."
-            self.render("login.html", all_wikis=all_wikis, username= username, error_username=error_username)
+            self.render("login.html", last_10_wikis=last_10_wikis, username= username, error_username=error_username)
     def get(self):
         r"""
             if user already logged-in, send to index page, otherwise send to login page
         """
 
-        all_wikis = get_all_wikis()
+        last_10_wikis = get_last_10_wikis()
         if session.is_user_logged_in(self):
             self.redirect("/")
         else:
-            self.render("login.html", all_wikis=all_wikis) 
+            self.render("login.html", last_10_wikis=last_10_wikis) 
     def post(self):
         r"""
             Verify users info. If incorrect, send eror message, otherwise loggin user.
         """
 
-        all_wikis = get_all_wikis()
+        last_10_wikis = get_last_10_wikis()
         username = self.request.get( 'username' )
         password = self.request.get('password')     
 
@@ -204,13 +254,13 @@ class HandlerLogin(BaseHandler):
             valid_credentials = False
             error_username = "Please verify your credentials"
         if not(valid_username and valid_password and valid_credentials):
-            self.render('login.html',  all_wikis=all_wikis,
+            self.render('login.html',  last_10_wikis=last_10_wikis,
                                         username = username, 
                                         error_username = error_username)
         else:
             self.login_user(username)
 
-class HandlerLogout(BaseHandler):
+class HandlerLogout(HandlerBase):
     r"""
         Handler to log-out user
     """
@@ -223,7 +273,7 @@ class HandlerLogout(BaseHandler):
         self.redirect("/" )
 
 
-class HandlerHistory(BaseHandler):
+class HandlerHistory(HandlerBase):
     r"""
         Handler to show all versions of a given page
     """
@@ -232,29 +282,29 @@ class HandlerHistory(BaseHandler):
             get all versions of pages and show them to user in a table,
             if page does not exist, table will be empty
         """
-        all_wikis = get_all_wikis()
+        last_10_wikis = get_last_10_wikis()
         query = "SELECT * FROM Wiki WHERE page = '%s' ORDER BY created DESC" %(page)
         wikis = db.GqlQuery(query)
         self.set_escaping(True)
         if session.is_user_logged_in(self):
             username_session = session.get_username(self)
-            self.render('history.html', all_wikis=all_wikis, username_session=username_session, wikis=wikis, page=page)
+            self.render('history.html', last_10_wikis=last_10_wikis, username_session=username_session, wikis=wikis, page=page)
         else:
-            self.render('history.html', all_wikis=all_wikis, wikis=wikis, page=page)
+            self.render('history.html', last_10_wikis=last_10_wikis, wikis=wikis, page=page)
         self.set_escaping(False)
 
-class HandlerEdit(BaseHandler):
+class HandlerEdit(HandlerBase):
     r"""
         Handles the edit of any new or existing page
     """
     def edit_last_version(self, page, username_session):
-        all_wikis = get_all_wikis()
+        last_10_wikis = get_last_10_wikis()
         query = "SELECT * FROM Wiki WHERE page = '%s' ORDER BY created DESC LIMIT 1" %(page)
         wiki = db.GqlQuery(query)
         content = ""
         if wiki.count():#if wiki exist
             content = wiki.get().content
-        self.render('edit.html', all_wikis=all_wikis, username_session=username_session, page=page, edit_view="view", content = content)
+        self.render('edit.html', last_10_wikis=last_10_wikis, username_session=username_session, page=page, edit_view="view", content = content)
 
     def get(self, page):
         r"""
@@ -264,16 +314,16 @@ class HandlerEdit(BaseHandler):
             If user not logged in, send user to loggin page
         """
 
-        all_wikis = get_all_wikis()
+        last_10_wikis = get_last_10_wikis()
         if session.is_user_logged_in(self):
             id = self.request.get( 'id' )
             wiki = None
             username_session = session.get_username(self)
             if id and id.isdigit() :
-                wiki = Wiki.get_by_id(int(id), parent=wiki_key())                
+                wiki = Wiki.get_by_id(int(id), parent=Wiki.wiki_key())                
                 if wiki and wiki.page == page:
                     content = wiki.content
-                    self.render('edit.html', all_wikis=all_wikis, username_session=username_session, page=page, edit_view="view", content = content)
+                    self.render('edit.html', last_10_wikis=last_10_wikis, username_session=username_session, page=page, edit_view="view", content = content)
                 else:
                     self.edit_last_version(page, username_session)
             else:
@@ -287,43 +337,43 @@ class HandlerEdit(BaseHandler):
             A new Wiki's firs version can't be empty
         """
 
-        all_wikis = get_all_wikis()
+        last_10_wikis = get_last_10_wikis()
         content = self.request.get( 'content' )
         query = "SELECT * FROM Wiki WHERE page = '%s' ORDER BY created DESC LIMIT 1" %(page)
         wiki = db.GqlQuery(query)
         if wiki.count():#if wiki exist
             old_wiki_content = wiki.get().content
             if(old_wiki_content != content):#if content is equal, don't save new version
-                new_wiki = Wiki(parent=wiki_key(), page = page, content = content)
+                new_wiki = Wiki(parent=Wiki.wiki_key(), page = page, content = content)
                 new_wiki.put()
                 time.sleep(.5) #make sure put goes before redirect
             self.redirect(page )
         else:
             if content:
-                new_wiki = Wiki(parent=wiki_key(), page = page, content = content)
+                new_wiki = Wiki(parent=Wiki.wiki_key(), page = page, content = content)
                 new_wiki.put()
                 time.sleep(.5) #make sure put goes before redirect
                 self.redirect(page)
             else:
                 error = "New wiki cannot be empty"
-                self.render('edit.html',all_wikis=all_wikis, error=error)
+                self.render('edit.html',last_10_wikis=last_10_wikis, error=error)
 
 
-class HandlerPage(BaseHandler):
+class HandlerPage(HandlerBase):
     r"""
         handles any page except the main page
     """
     def show_last_version(self,page):
-        all_wikis = get_all_wikis()
+        last_10_wikis = get_last_10_wikis()
         query = "SELECT * FROM Wiki WHERE page = '%s' ORDER BY created DESC LIMIT 1" %(page)
         wiki = db.GqlQuery(query)
         if wiki.count():#if wiki exist
             content = wiki.get().content
             if session.is_user_logged_in(self):
                 username_session = session.get_username(self)
-                self.render('page.html',all_wikis=all_wikis, page=page, username_session=username_session, link_edit_view="/_edit" ,edit_view="edit", content=content)
+                self.render('page.html',last_10_wikis=last_10_wikis, page=page, username_session=username_session, link_edit_view="/_edit" ,edit_view="edit", content=content)
             else:
-                self.render('page.html',all_wikis=all_wikis, content=content)
+                self.render('page.html',last_10_wikis=last_10_wikis, content=content)
         else:
             url = "/_edit%s"%(page)
             self.redirect(url)
@@ -336,33 +386,42 @@ class HandlerPage(BaseHandler):
             if id doesn't match page, show last version
         """
 
-        all_wikis = get_all_wikis()
+        last_10_wikis = get_last_10_wikis()
         id = self.request.get( 'id' )
         wiki = None
+        #verify id exists and is a valid number, therwise show last version
         if id and id.isdigit():
-            wiki = Wiki.get_by_id(int(id), parent=wiki_key())
-            if wiki and wiki.page == page: 
+            #if id is a valid number, verify that it exists and that id version belongs to page
+            #If it does, show the id version, otherwise show last version
+            wiki = Wiki.get_by_id(int(id), parent=Wiki.wiki_key())
+            if wiki and wiki.page == page:#id exists and belongs to page
                 content = wiki.content
+                # Mofify login part on top depending on whether user is logged in
                 if session.is_user_logged_in(self):
                     username_session = session.get_username(self)
-                    self.render('page.html',all_wikis=all_wikis, page=page, username_session=username_session, link_edit_view="/_edit" ,edit_view="edit", content=content)
+                    self.render('page.html',last_10_wikis=last_10_wikis, page=page, username_session=username_session, link_edit_view="/_edit" ,edit_view="edit", content=content)
                 else:
-                    self.render('page.html',all_wikis=all_wikis, content=content)
+                    self.render('page.html',last_10_wikis=last_10_wikis, content=content)
             else:
                 self.show_last_version(page)
         else:
             self.show_last_version(page)
 
+class HandlerBadRequest(HandlerBase):
+    def get(self, page):
+        self.response.status_int = 400
+        self.response.out.write("Bar Request: %s is an invalid page name"% page)
 
 application = webapp2.WSGIApplication(
-				[
-					('/?'                 , HandlerMain),
-					('/signup/?'          , HandlerSignUp),
-					('/login/?'           , HandlerLogin),
-					('/logout/?'          , HandlerLogout),
+                [
+                    ('/?'                 , HandlerMain),
+                    ('/signup/?'          , HandlerSignUp),
+                    ('/login/?'           , HandlerLogin),
+                    ('/logout/?'          , HandlerLogout),
                     ('/_history' + PAGE_RE, HandlerHistory),
                     ('/_edit' + PAGE_RE   , HandlerEdit),
-					(PAGE_RE              , HandlerPage),
-				],
-				debug=DEBUG
+                    (PAGE_RE              , HandlerPage),
+                    ('/(.+)'              , HandlerBadRequest)
+                ],
+                debug=DEBUG
 )

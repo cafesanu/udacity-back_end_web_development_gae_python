@@ -1,43 +1,64 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<link   type="text/css"        rel="stylesheet" href="/static/main.css" />
-		<title>CAFESANU: Udacity CS-253 Final Project: Build a Wiki</title>
-	</head>
+    <head>
+        <link   type="text/css"        rel="stylesheet" href="/static/main.css" />
+        <title>CAFESANU: Udacity CS-253 Final Project: Build a Wiki</title>
+    </head>
 
-	<body>
+    <body>
+        <div>Wiki build using the Google App Engine with Python for Udacity course <a href="https://www.udacity.com/course/cs253">CS-253: Back-end Web Development</a>. <br>Code available at <a href="https://github.com/cafesanu">my GitHub account</a> </div>
+        <div class="login-area">
+            {% if username_session %}
+                <a class="login-link" href="{{link_edit_view}}{{page}}">{{edit_view}}</a>
+                {% if edit_view == "edit" %}
+                    | <a class="login-link" href="_history{{page}}">history</a>
+                {% endif %}
+                {{username_session}}
+                <a class="login-link" href="/logout">(logout)</a>
+            {% else %}
+                <a class="login-link" href="_history{{page}}">history</a>
+                |
+                <a class="login-link" href="/login">login</a>
+                |
+                <a class="login-link" href="/signup">signup</a>
+            {% endif %}
 
-		<div class="login-area">
-			{% if username_session %}
-			    <a class="login-link" href="{{link_edit_view}}{{page}}">{{edit_view}}</a>
-			    {% if edit_view == "edit" %}
-			   		| <a class="login-link" href="_history{{page}}">history</a>
-				{% endif %}
-				{{username_session}}
-				<a class="login-link" href="/logout">(logout)</a>
-			{% else %}
-				<a class="login-link" href="/login">login</a>
-				|
-				<a class="login-link" href="/signup">signup</a>
-			{% endif %}
+        </div>
 
-		</div>
+    <h1>CAFESANU CS-253 Wiki </h1>
+        <div id="navbar">
+            <h4><a class="home" href="/">Home</a></h4>
+            {% if from_main %}
+                <h4>Create/Edit Wiki:</h4>
+                <form method="post">
+                    <input type="text" name="page" placeholder="Wiki name">
+                    <input type="submit" value="Go">
+                </form>
+            {% endif %}
 
-	<h1>CAFESANU CS-253 Wiki </h1>
-		<div id="navbar">
-			<h4>Wikis Created:</h4>
-			<ul>
-				{% for w in all_wikis %}
-					<li>
-						<a class="login-link" href="{{w.page}}">{{w.page}}</a>
-					</li>
-				{% endfor %}
-			</ul>
-		</div>
-		<div id="content">
-			{% block content %}
-			{% endblock %}
-		</div>
-	</body>
+            <h4>Main page:</h4>
+
+            <ul>
+                    <li>
+                        <a class="login-link" href="/">/</a>
+                    </li>
+            </ul>
+
+            <h4>Last 10 wikis modified:</h4>
+            <ol>
+                {% for w in last_10_wikis %}
+                    <li>
+                        <a class="login-link" href="{{w}}">{{w}}</a>
+                    </li>
+                {% endfor %}
+            </ol>
+        </div>
+        <div id="content">
+            <h3>{{page}}</h3>
+            <hr>
+            {% block content %}
+            {% endblock %}
+        </div>
+    </body>
 
 </html>
