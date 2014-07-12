@@ -20,7 +20,7 @@
                         {{wiki.created.strftime("%a %b %d %H:%M:%S %Y")}}
                     </td>
                     <td>
-                        {{wiki.content}}
+                        {{wiki.content[:110] + " ..."}}
                     </td>
                     <td>
                         <a class="login-link" href="{{page}}?id={{wiki.key().id()}}">view</a>
