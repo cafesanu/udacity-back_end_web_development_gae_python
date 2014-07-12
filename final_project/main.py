@@ -407,7 +407,7 @@ class HandlerPage(HandlerBase):
 class HandlerBadRequest(HandlerBase):
     def get(self, page):
         self.response.status_int = 400
-        self.response.out.write("Bad Request: %s is an invalid page name"% page)
+        self.response.out.write("Bad  Request: %s is an invalid page name"% page)
 
 application = webapp2.WSGIApplication(
                 [
