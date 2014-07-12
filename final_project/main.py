@@ -34,15 +34,6 @@ jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), a
 
 #------------------------------------------------------------------------------
 #Global Functions
-def get_last_10_wikis():
-    query = "SELECT page FROM Wiki ORDER BY created DESC"
-    wikis = db.GqlQuery(query)
-
-    wiki_pages = []
-    for w in wikis:
-        if w.page not in wiki_pages:
-            wiki_pages.append(w.page)
-    return wiki_pages[:10]
 
 #------------------------------------------------------------------------------
 #Page Handlers
@@ -79,6 +70,16 @@ class HandlerBase(webapp2.RequestHandler):
         global jinja_env
         jinja_env = jinja2.Environment(loader = jinja2.FileSystemLoader(template_dir), autoescape = escape)
 
+    def get_last_10_wikis(self):
+        query = "SELECT page FROM Wiki ORDER BY created DESC"
+        wikis = db.GqlQuery(query)
+
+        wiki_pages = []
+        for w in wikis:
+            if w.page not in wiki_pages:
+                wiki_pages.append(w.page)
+        return wiki_pages[:10]
+
 
 class HandlerMain(HandlerBase):
     r"""Handler for index page
@@ -98,7 +99,7 @@ class HandlerMain(HandlerBase):
             new_wiki.put()
             time.sleep(.5) #make sure put goes before geeting list of wikis
 
-        last_10_wikis = get_last_10_wikis()
+        last_10_wikis = self.get_last_10_wikis()
         id = self.request.get( 'id' )
         username_session = session.get_username(self)
         wiki = None
@@ -151,7 +152,7 @@ class HandlerSignUp(HandlerBase):
 
         """
 
-        last_10_wikis = get_last_10_wikis()
+        last_10_wikis = self.get_last_10_wikis()
         username_session = session.get_username(self)
         self.render('signup.html', last_10_wikis=last_10_wikis, username_session=username_session)
 
@@ -159,7 +160,7 @@ class HandlerSignUp(HandlerBase):
         r""" Verifies user's type info, if valid, add user, set cookies and redirect to index page
         """
 
-        last_10_wikis = get_last_10_wikis()
+        last_10_wikis = self.get_last_10_wikis()
         username = self.request.get( 'username' )
         password = self.request.get('password')
         verify = self.request.get('verify')
@@ -209,7 +210,7 @@ class HandlerLogin(HandlerBase):
             logs-in user checking db. If not found send unexpected error
         """
 
-        last_10_wikis = get_last_10_wikis()
+        last_10_wikis = self.get_last_10_wikis()
         q = db.GqlQuery( "SELECT * FROM User where username = \'" + username + "\'" )
         if q.count() == 1:
             user = q.get()
@@ -226,7 +227,7 @@ class HandlerLogin(HandlerBase):
             if user already logged-in, send to index page, otherwise send to login page
         """
 
-        last_10_wikis = get_last_10_wikis()
+        last_10_wikis = self.get_last_10_wikis()
         if session.is_user_logged_in(self):
             self.redirect("/")
         else:
@@ -236,7 +237,7 @@ class HandlerLogin(HandlerBase):
             Verify users info. If incorrect, send eror message, otherwise loggin user.
         """
 
-        last_10_wikis = get_last_10_wikis()
+        last_10_wikis = self.get_last_10_wikis()
         username = self.request.get( 'username' )
         password = self.request.get('password')     
 
@@ -282,7 +283,7 @@ class HandlerHistory(HandlerBase):
             get all versions of pages and show them to user in a table,
             if page does not exist, table will be empty
         """
-        last_10_wikis = get_last_10_wikis()
+        last_10_wikis = self.get_last_10_wikis()
         query = "SELECT * FROM Wiki WHERE page = '%s' ORDER BY created DESC" %(page)
         wikis = db.GqlQuery(query)
         self.set_escaping(True)
@@ -295,7 +296,7 @@ class HandlerEdit(HandlerBase):
         Handles the edit of any new or existing page
     """
     def edit_last_version(self, page, username_session):
-        last_10_wikis = get_last_10_wikis()
+        last_10_wikis = self.get_last_10_wikis()
         query = "SELECT * FROM Wiki WHERE page = '%s' ORDER BY created DESC LIMIT 1" %(page)
         wiki = db.GqlQuery(query)
         content = ""
@@ -311,7 +312,7 @@ class HandlerEdit(HandlerBase):
             If user not logged in, send user to loggin page
         """
 
-        last_10_wikis = get_last_10_wikis()
+        last_10_wikis = self.get_last_10_wikis()
         if session.is_user_logged_in(self):
             id = self.request.get( 'id' )
             wiki = None
@@ -334,7 +335,7 @@ class HandlerEdit(HandlerBase):
             A new Wiki's firs version can't be empty
         """
 
-        last_10_wikis = get_last_10_wikis()
+        last_10_wikis = self.get_last_10_wikis()
         content = self.request.get( 'content' )
         query = "SELECT * FROM Wiki WHERE page = '%s' ORDER BY created DESC LIMIT 1" %(page)
         wiki = db.GqlQuery(query)
@@ -361,7 +362,7 @@ class HandlerPage(HandlerBase):
         handles any page except the main page
     """
     def show_last_version(self,page):
-        last_10_wikis = get_last_10_wikis()
+        last_10_wikis = self.get_last_10_wikis()
         query = "SELECT * FROM Wiki WHERE page = '%s' ORDER BY created DESC LIMIT 1" %(page)
         wiki = db.GqlQuery(query)
         if wiki.count():#if wiki exist
@@ -383,7 +384,7 @@ class HandlerPage(HandlerBase):
             if id doesn't match page, show last version
         """
 
-        last_10_wikis = get_last_10_wikis()
+        last_10_wikis = self.get_last_10_wikis()
         id = self.request.get( 'id' )
         wiki = None
         #verify id exists and is a valid number, therwise show last version
